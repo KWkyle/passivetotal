@@ -78,7 +78,7 @@ module PassiveTotal # :nodoc:
     # Passive provides a complete passive DNS picture for a domain or IP address including first/last seen values, deconflicted values, sources used, unique counts and enrichment for all values.
     # query: A domain or IP address to query
     def passive(query)
-      is_valid_with_error(__method__, [:ipv4, :domain], query)
+      is_valid_with_error(__method__, [:ipv4, :ipv6, :domain], query)
       if domain?(query)
         query = normalize_domain(query)
       end
@@ -418,6 +418,33 @@ module PassiveTotal # :nodoc:
       false
     end
 
+    # returns true if the given string is a IPv6 address
+    def ipv6?(ip)
+      ipv6_regex = /
+      (?:(?x-mi:\A
+      (?:[0-9A-Fa-f]{1,4}:){7}
+         [0-9A-Fa-f]{1,4}
+      \z)) |
+      (?:(?x-mi:\A
+      ((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?) ::
+      ((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)
+      \z)) |
+      (?:(?x-mi:\A
+      ((?:[0-9A-Fa-f]{1,4}:){6,6})
+      (\d+)\.(\d+)\.(\d+)\.(\d+)
+      \z)) |
+      (?:(?x-mi:\A
+      ((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?) ::
+      ((?:[0-9A-Fa-f]{1,4}:)*)
+      (\d+)\.(\d+)\.(\d+)\.(\d+)
+      \z))/x
+
+      if ip =~ ipv6_regex
+        return true
+      end
+      false
+    end
+
     # returns true if the given string looks like a domain and ends with a known top-level domain (TLD)
     def domain?(domain)
       return false if domain.nil?
@@ -570,6 +597,8 @@ module PassiveTotal # :nodoc:
       types.each do |type|
         if type == :ipv4
           return true if ipv4?(item)
+        elsif type == :ipv6
+          return true if ipv6?(item)
         elsif type == :domain
           return true if domain?(item)
         elsif type == :hash
@@ -587,7 +616,7 @@ module PassiveTotal # :nodoc:
         elsif type == :tracker_type
           return true if tracker_type?(item)
         end
-      end
+    end
       return false
     end
 
